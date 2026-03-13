@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Eventos</title>
+
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.svg">
+
+    <!-- Styles & Fonts -->
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase/dist/pocketbase.umd.js"></script>
+</head>
+
+<body>
+
+    <!-- MODAL DE LOGIN -->
+    <div id="auth-container">
+        <div class="login-card">
+            <div style="font-size: 3rem; margin-bottom: 20px;">📅</div>
+            <h2 style="margin-bottom: 10px;">Mis Eventos</h2>
+            <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 30px;">Gestiona tus citas y eventos fácilmente</p>
+            <div class="input-group">
+                <input type="email" id="login-email" placeholder="Email">
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-pass" placeholder="Contraseña">
+            </div>
+            <button class="btn-full" onclick="login()" id="btn-login">Entrar</button>
+        </div>
+    </div>
+
+    <!-- APP MAIN -->
+    <div id="app-main" style="display: none;">
+        <header>
+            <div class="header-top">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="background:var(--primary); color:white; padding:8px; border-radius:10px; display:flex;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    <h1>Mis Eventos</h1>
+                </div>
+                <div class="header-icons">
+                    <button class="icon-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                    <button class="icon-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-status="proximo" onclick="setTab('proximo')">Próximos</button>
+                <button class="tab" data-status="pasado" onclick="setTab('pasado')">Pasados</button>
+            </div>
+        </header>
+
+        <div class="search-container">
+            <input type="text" class="search-bar" id="search-input" placeholder="Buscar eventos por nombre..." oninput="filtrarEventos()">
+        </div>
+
+        <div class="event-list" id="event-list">
+            <!-- Items se cargarán dinámicamente -->
+        </div>
+
+        <button class="fab" onclick="abrirModalNuevo()">+</button>
+
+    </div>
+
+    <!-- MODAL NUEVO/EDITAR EVENTO -->
+    <div id="modal-evento" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-titulo" style="margin-bottom: 20px;">Nuevo Evento</h2>
+            
+            <div class="input-group">
+                <label>Título del Evento</label>
+                <input type="text" id="ev-titulo" placeholder="Ej: Conferencia Tech">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="input-group">
+                    <label>Fecha</label>
+                    <input type="date" id="ev-fecha">
+                </div>
+                <div class="input-group">
+                    <label>Hora</label>
+                    <input type="text" id="ev-horario" placeholder="09:00 - 18:00">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Ubicación</label>
+                <input type="text" id="ev-ubicacion" placeholder="Lugar del evento">
+            </div>
+
+            <div class="input-group">
+                <label>Notas</label>
+                <textarea id="ev-notas" rows="3" placeholder="Añade detalles adicionales..." style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: inherit; font-size: 1rem;"></textarea>
+            </div>
+
+
+
+            <div class="input-group">
+                <label>Imagen del Evento</label>
+                <input type="file" id="ev-imagen-file" accept="image/*" style="display: none;">
+                <button class="btn-full" style="background:#f1f5f9; color:var(--text-dark); margin-bottom:10px;" onclick="document.getElementById('ev-imagen-file').click()">Subir Imagen</button>
+            </div>
+
+            <div class="input-group">
+                <label>Entradas</label>
+                <input type="file" id="ev-archivo-file" accept="application/pdf" style="display: none;">
+                <button class="btn-full" style="background:#f1f5f9; color:var(--text-dark); margin-bottom:10px;" onclick="document.getElementById('ev-archivo-file').click()">Subir Entradas</button>
+                <div id="pdf-status" style="font-size: 0.8rem; color: var(--primary); margin-top: -5px; display: none;">Archivo seleccionado</div>
+            </div>
+
+            <div class="actions" style="margin-top: 30px;">
+                <button class="btn-full" id="btn-save-ev" onclick="guardarEvento()">Guardar Evento</button>
+                <button class="btn-full btn-cancel" onclick="cerrarModal()">Cancelar</button>
+            </div>
+            
+            <div id="delete-action" style="text-align: center; margin-top: 15px; display: none;">
+                <button style="background:none; border:none; color:#ef4444; font-weight:600; cursor:pointer;" onclick="borrarEventoActual()">Eliminar Evento</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">¡Hecho!</div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
