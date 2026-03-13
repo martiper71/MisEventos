@@ -1,10 +1,11 @@
-const CACHE_NAME = 'agenda-v1';
+const CACHE_NAME = 'agenda-v2';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
     './manifest.json',
+    './icon.png',
     'https://cdn.jsdelivr.net/npm/pocketbase/dist/pocketbase.umd.js',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap'
 ];

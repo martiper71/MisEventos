@@ -1,6 +1,6 @@
 {
   "name": "Mis Eventos",
-  "short_name": "Eventos",
+  "short_name": "MisEventos",
   "description": "Control de eventos personales",
   "start_url": "./index.html",
   "display": "standalone",
