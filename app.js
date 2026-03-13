@@ -73,10 +73,10 @@ async function cargarEventos() {
     try {
         if (!pb.authStore.isValid) return;
 
-        // Filtramos por estado y usuario
+        // Filtramos por estado y usuario, ordenando distinto según la pestaña
         const registros = await pb.collection('MisEventos').getFullList({
             filter: `estado = '${currentTab}' && user = '${pb.authStore.model.id}'`,
-            sort: 'fecha',
+            sort: currentTab === 'pasado' ? '-fecha' : 'fecha',
         });
 
         eventosActuales = registros;
@@ -127,6 +127,11 @@ function renderizarEventos(eventos) {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                         ${ev.ubicacion || 'Sin ubicación'}
                     </div>
+                    ${ev.precio ? `
+                    <div class="meta-item" style="color: #059669; font-weight: 600;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                        ${parseFloat(ev.precio).toFixed(2)} €
+                    </div>` : ''}
                 </div>
                 <div class="event-footer">
                     <div style="display:flex; gap:10px;">
@@ -152,6 +157,7 @@ function abrirModalNuevo() {
     document.getElementById('ev-fecha').value = new Date().toISOString().split('T')[0];
     document.getElementById('ev-horario').value = '';
     document.getElementById('ev-ubicacion').value = '';
+    document.getElementById('ev-precio').value = '';
     document.getElementById('ev-notas').value = '';
     document.getElementById('ev-archivo-file').value = '';
     document.getElementById('pdf-status').style.display = 'none';
@@ -169,6 +175,7 @@ function abrirModalEditar(id) {
     document.getElementById('ev-fecha').value = ev.fecha.split(' ')[0];
     document.getElementById('ev-horario').value = ev.horario;
     document.getElementById('ev-ubicacion').value = ev.ubicacion;
+    document.getElementById('ev-precio').value = ev.precio || '';
     document.getElementById('ev-notas').value = ev.notas || '';
     document.getElementById('ev-archivo-file').value = '';
     document.getElementById('pdf-status').style.display = ev.archivo ? 'block' : 'none';
@@ -186,6 +193,7 @@ async function guardarEvento() {
     const fechaInput = document.getElementById('ev-fecha').value;
     const horario = document.getElementById('ev-horario').value.trim();
     const ubicacion = document.getElementById('ev-ubicacion').value.trim();
+    const precio = document.getElementById('ev-precio').value;
     const notas = document.getElementById('ev-notas').value.trim();
     const fileInput = document.getElementById('ev-imagen-file');
     const pdfInput = document.getElementById('ev-archivo-file');
@@ -205,6 +213,7 @@ async function guardarEvento() {
     formData.append('fecha', fechaInput + " 12:00:00");
     formData.append('horario', horario);
     formData.append('ubicacion', ubicacion);
+    formData.append('precio', precio);
     formData.append('notas', notas);
     formData.append('estado', estado);
     formData.append('user', pb.authStore.model.id);

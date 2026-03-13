@@ -1,5 +1,5 @@
 {
-  "name": "Mis Eventos",
+  "name": "MisEventos",
   "short_name": "MisEventos",
   "description": "Control de eventos personales",
   "start_url": "./index.html",

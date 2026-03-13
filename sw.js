@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agenda-v2';
+const CACHE_NAME = 'agenda-v3';
 const ASSETS = [
     './',
     './index.html',
