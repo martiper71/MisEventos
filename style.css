@@ -135,6 +135,29 @@ header {
     gap: 20px;
 }
 
+.ajuste-item {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: var(--white);
+    transition: background 0.2s;
+}
+
+.ajuste-item:active {
+    background: #f8fafc;
+}
+
+.month-header {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 15px 0 5px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
 .event-card {
     background: var(--white);
     border-radius: var(--radius);

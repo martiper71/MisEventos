@@ -56,7 +56,16 @@ function setTab(status) {
         t.classList.remove('active');
         if (t.dataset.status === status) t.classList.add('active');
     });
-    cargarEventos();
+
+    if (status === 'estadisticas') {
+        document.getElementById('view-eventos').style.display = 'none';
+        document.getElementById('view-estadisticas').style.display = 'block';
+        actualizarEstadisticas();
+    } else {
+        document.getElementById('view-estadisticas').style.display = 'none';
+        document.getElementById('view-eventos').style.display = 'block';
+        cargarEventos();
+    }
 }
 
 function filtrarEventos() {
@@ -69,13 +78,41 @@ function filtrarEventos() {
 }
 
 // --- 4. DATA FETCHING ---
+async function actualizarEstadisticas() {
+    try {
+        const registrosAno = await pb.collection('MisEventos').getFullList({
+            filter: `user = '${pb.authStore.model.id}'`
+        });
+
+        let totalEventos = registrosAno.length;
+        let gastoTotal = 0;
+
+        registrosAno.forEach(ev => {
+            if (ev.precio) gastoTotal += parseFloat(ev.precio);
+        });
+
+        const precioMedio = totalEventos > 0 ? (gastoTotal / totalEventos) : 0;
+
+        document.getElementById('stat-count').textContent = totalEventos;
+        document.getElementById('stat-total').textContent = gastoTotal.toFixed(0) + '€';
+        document.getElementById('stat-avg').textContent = precioMedio.toFixed(0) + '€';
+    } catch (e) {
+        console.error("Error stats", e);
+    }
+}
+
 async function cargarEventos() {
     try {
         if (!pb.authStore.isValid) return;
 
-        // Filtramos por estado y usuario, ordenando distinto según la pestaña
+        // Calculamos la fecha de hoy a las 00:00 para comparar
+        const hoy = new Date().toISOString().split('T')[0] + " 00:00:00";
+        let dateFilter = currentTab === 'proximo' 
+            ? `fecha >= "${hoy}"` 
+            : `fecha < "${hoy}"`;
+
         const registros = await pb.collection('MisEventos').getFullList({
-            filter: `estado = '${currentTab}' && user = '${pb.authStore.model.id}'`,
+            filter: `${dateFilter} && user = '${pb.authStore.model.id}'`,
             sort: currentTab === 'pasado' ? '-fecha' : 'fecha',
         });
 
@@ -99,11 +136,52 @@ function renderizarEventos(eventos) {
         return;
     }
 
+    let currentMonthYear = '';
+
     eventos.forEach(ev => {
         const date = new Date(ev.fecha);
         const day = date.getDate();
         const month = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase().replace('.', '');
         
+        // Agrupación por meses
+        const groupMonthStr = date.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        const groupMonthCapitalized = groupMonthStr.charAt(0).toUpperCase() + groupMonthStr.slice(1);
+
+        if (groupMonthCapitalized !== currentMonthYear) {
+            currentMonthYear = groupMonthCapitalized;
+            const header = document.createElement('div');
+            header.className = 'month-header';
+            header.textContent = currentMonthYear;
+            container.appendChild(header);
+        }
+
+        // Cuenta atrás
+        let countdownHtml = '';
+        if (currentTab === 'proximo') {
+            const dateObj = new Date(ev.fecha);
+            dateObj.setHours(0,0,0,0);
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            
+            const diffTime = dateObj - hoy;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays >= 0) {
+                let textCountdown = '';
+                let colorCountdown = '#ea580c'; // Naranja
+                if (diffDays === 0) {
+                    textCountdown = '¡Es hoy!';
+                    colorCountdown = '#ef4444'; // Rojo fuerte
+                } else if (diffDays === 1) {
+                    textCountdown = 'Mañana';
+                } else {
+                    textCountdown = `Faltan ${diffDays} días`;
+                }
+
+                countdownHtml = `<div class="meta-item" style="color: ${colorCountdown}; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> ${textCountdown}</div>`;
+            }
+        }
+
         const imgUrl = ev.imagen 
             ? pb.files.getUrl(ev, ev.imagen) 
             : 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=600&q=80';
@@ -118,7 +196,8 @@ function renderizarEventos(eventos) {
             </div>
             <div class="event-info">
                 <div class="event-title">${ev.titulo}</div>
-                <div class="event-meta">
+                <div class="event-meta" style="margin-top: 8px;">
+                    ${countdownHtml}
                     <div class="meta-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         ${ev.horario || 'Sin horario'}
@@ -258,3 +337,50 @@ function mostrarToast(msg) {
     t.style.opacity = '1';
     setTimeout(() => t.style.opacity = '0', 2000);
 }
+
+// --- 6. AJUSTES ---
+function abrirAjustes() {
+    document.getElementById('ajustes-view').style.display = 'block';
+}
+
+function cerrarAjustes() {
+    document.getElementById('ajustes-view').style.display = 'none';
+}
+
+function cerrarSesion() {
+    if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
+        pb.authStore.clear();
+        document.getElementById('ajustes-view').style.display = 'none';
+        document.getElementById('app-main').style.display = 'none';
+        document.getElementById('auth-container').style.display = 'flex';
+        document.getElementById('login-pass').value = '';
+    }
+}
+
+function exportarCSV() {
+    if (eventosActuales.length === 0) return alert("No hay eventos para exportar");
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Titulo,Fecha,Hora,Ubicacion,Precio,Estado,Notas\n";
+
+    eventosActuales.forEach(ev => {
+        const title = ev.titulo ? `"${ev.titulo.replace(/"/g, '""')}"` : "";
+        const date = ev.fecha ? `"${ev.fecha.split(' ')[0]}"` : "";
+        const time = ev.horario ? `"${ev.horario}"` : "";
+        const loc = ev.ubicacion ? `"${ev.ubicacion.replace(/"/g, '""')}"` : "";
+        const price = ev.precio ? `"${ev.precio}"` : '""';
+        const stat = ev.estado ? `"${ev.estado}"` : "";
+        const notes = ev.notas ? `"${ev.notas.replace(/"/g, '""')}"` : "";
+
+        csvContent += `${title},${date},${time},${loc},${price},${stat},${notes}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "mis_eventos.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
